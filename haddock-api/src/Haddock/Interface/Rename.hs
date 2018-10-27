@@ -600,26 +600,31 @@ renameTyFamInstEqn eqn
     rename_ty_fam_eqn
       :: FamEqn GhcRn (HsTyPats GhcRn) (LHsType GhcRn)
       -> RnM (FamEqn DocNameI (HsTyPats DocNameI) (LHsType DocNameI))
-    rename_ty_fam_eqn (FamEqn { feqn_tycon = tc, feqn_pats = pats
-                              , feqn_fixity = fixity, feqn_rhs = rhs })
+    rename_ty_fam_eqn (FamEqn { feqn_tycon = tc, feqn_bndrs = bndrs
+                              , feqn_pats = pats, feqn_fixity = fixity
+                              , feqn_rhs = rhs })
       = do { tc' <- renameL tc
+           ; bndrs' <- traverse (mapM renameLTyVarBndr) bndrs
            ; pats' <- mapM renameLType pats
            ; rhs' <- renameLType rhs
            ; return (FamEqn { feqn_ext    = noExt
                             , feqn_tycon  = tc'
+                            , feqn_bndrs  = bndrs'
                             , feqn_pats   = pats'
                             , feqn_fixity = fixity
                             , feqn_rhs    = rhs' }) }
     rename_ty_fam_eqn (XFamEqn _) = panic "haddock:renameTyFamInstEqn"
 
 renameLTyFamDefltEqn :: LTyFamDefltEqn GhcRn -> RnM (LTyFamDefltEqn DocNameI)
-renameLTyFamDefltEqn (L loc (FamEqn { feqn_tycon = tc, feqn_pats = tvs
-                                    , feqn_fixity = fixity, feqn_rhs = rhs }))
+renameLTyFamDefltEqn (L loc (FamEqn { feqn_tycon = tc, feqn_bndrs = bndrs
+                                    , feqn_pats = tvs, feqn_fixity = fixity
+                                    , feqn_rhs = rhs }))
   = do { tc'  <- renameL tc
        ; tvs' <- renameLHsQTyVars tvs
        ; rhs' <- renameLType rhs
        ; return (L loc (FamEqn { feqn_ext    = noExt
                                , feqn_tycon  = tc'
+                               , feqn_bndrs  = ASSERT( isNothing bndrs ) Nothing
                                , feqn_pats   = tvs'
                                , feqn_fixity = fixity
                                , feqn_rhs    = rhs' })) }
@@ -633,13 +638,16 @@ renameDataFamInstD (DataFamInstDecl { dfid_eqn = eqn })
     rename_data_fam_eqn
       :: FamEqn GhcRn (HsTyPats GhcRn) (HsDataDefn GhcRn)
       -> RnM (FamEqn DocNameI (HsTyPats DocNameI) (HsDataDefn DocNameI))
-    rename_data_fam_eqn (FamEqn { feqn_tycon = tc, feqn_pats = pats
-                                , feqn_fixity = fixity, feqn_rhs = defn })
+    rename_data_fam_eqn (FamEqn { feqn_tycon = tc, feqn_bndrs = bndrs
+                                , feqn_pats = pats, feqn_fixity = fixity
+                                , feqn_rhs = defn })
       = do { tc' <- renameL tc
+           ; bndrs' <- traverse (mapM renameLTyVarBndr) bndrs
            ; pats' <- mapM renameLType pats
            ; defn' <- renameDataDefn defn
            ; return (FamEqn { feqn_ext    = noExt
                             , feqn_tycon  = tc'
+                            , feqn_bndrs  = bndrs'
                             , feqn_pats   = pats'
                             , feqn_fixity = fixity
                             , feqn_rhs    = defn' }) }
